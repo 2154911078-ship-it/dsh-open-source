@@ -1,6 +1,6 @@
 # DeepSeek Harness 本地配置与插件集
 
-![预览](docs/preview.png)
+![预览](docs/cover.png)
 
 一套为 **DeepSeek Harness（DSH）Web 界面**打造的本地插件与壁纸资源合集，全部开源。
 
@@ -12,7 +12,7 @@
 
 ```
 deepseek/
-├── docs/preview.png           # 仓库预览图（README 顶部展示）
+├── docs/cover.png              # 仓库预览图（README 顶部展示）
 ├── dsh-gif-wallpaper/         # 插件：GIF 动态壁纸（网页背景）
 │   ├── package.json           #   插件元数据（Cordis 客户端注入声明）
 │   ├── client.js              #   浏览器端：透明度滑块 / 暂停播放 / 面板汉化
