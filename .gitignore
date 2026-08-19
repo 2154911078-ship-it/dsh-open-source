@@ -2,6 +2,20 @@
 dsh-boot-fix-log.txt
 *.log
 
+# 开发临时文件（_ 前缀）
+_cordis_ui_bundle.js
+_pet_*.txt
+_pet_*.mjs
+_pet_*.ps1
+_pet_*.json
+_pet_*.png
+_sleep_frames.png
+
+# 上传准备 / 重复素材目录（仓库内已有 shark-hood-bear-pet/）
+_github_upload/
+shark_hood_bear_pet_full/
+shark-hood-bear-pet.zip
+
 # 测试残留
 modlens-test.png
 *.tmp

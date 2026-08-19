@@ -1,0 +1,129 @@
+{
+  "name": "鲨鱼帽小熊",
+  "name_en": "Shark Hood Bear",
+  "author": "hatchpet-generator",
+  "version": "1.0.0",
+  "description": "一只戴着灰色鲨鱼头套的奶油色小熊桌宠，呆萌治愈系",
+  "sprite": {
+    "image": "pet.png",
+    "cols": 8,
+    "rows": 9,
+    "cell_width": 256,
+    "cell_height": 256,
+    "total_cells": 72,
+    "anchor_x": 128,
+    "anchor_y": 230
+  },
+  "animations": {
+    "idle": {
+      "start_frame": 0,
+      "end_frame": 11,
+      "frame_count": 12,
+      "fps": 6,
+      "loop": true,
+      "description": "待机呼吸+眨眼循环，动作舒缓"
+    },
+    "walk": {
+      "start_frame": 12,
+      "end_frame": 27,
+      "frame_count": 16,
+      "fps": 10,
+      "loop": true,
+      "description": "4帧步态循环，自然行走"
+    },
+    "run": {
+      "start_frame": 28,
+      "end_frame": 39,
+      "frame_count": 12,
+      "fps": 12,
+      "loop": true,
+      "description": "快速奔跑，动作幅度大于行走"
+    },
+    "sleep": {
+      "start_frame": 40,
+      "end_frame": 47,
+      "frame_count": 8,
+      "fps": 4,
+      "loop": true,
+      "description": "休眠状态，Zzz渐进动画"
+    },
+    "interact": {
+      "start_frame": 48,
+      "end_frame": 59,
+      "frame_count": 12,
+      "fps": 8,
+      "loop": false,
+      "description": "点击反馈：惊讶→跳跃挥手→落地",
+      "next_animation": "idle"
+    },
+    "jump_fall": {
+      "start_frame": 60,
+      "end_frame": 67,
+      "frame_count": 8,
+      "fps": 8,
+      "loop": false,
+      "description": "跳跃/下落：下蹲→起跳→下落→落地",
+      "next_animation": "idle"
+    }
+  },
+  "behaviors": {
+    "default_state": "idle",
+    "fallback_animation": "idle",
+    "idle": {
+      "random_actions": [
+        {"animation": "idle", "weight": 70, "min_duration": 3000, "max_duration": 8000},
+        {"animation": "sleep", "weight": 15, "min_duration": 5000, "max_duration": 15000},
+        {"animation": "walk", "weight": 15, "min_duration": 2000, "max_duration": 5000}
+      ],
+      "sleep_after_idle": 30000
+    },
+    "interaction": {
+      "on_click": {
+        "animation": "interact",
+        "cooldown": 500,
+        "priority": 10
+      },
+      "on_drag_start": {
+        "animation": "interact",
+        "priority": 5
+      },
+      "on_drag_end": {
+        "animation": "jump_fall",
+        "priority": 5
+      }
+    },
+    "movement": {
+      "walk_speed": 1.5,
+      "run_speed": 3.0,
+      "walk_animation": "walk",
+      "run_animation": "run",
+      "gravity": 0.5,
+      "jump_force": 12,
+      "jump_animation": "jump_fall"
+    }
+  },
+  "physics": {
+    "width": 120,
+    "height": 160,
+    "collision_offset_x": 68,
+    "collision_offset_y": 50,
+    "collision_width": 120,
+    "collision_height": 180
+  },
+  "metadata": {
+    "style": "插画风 / Q版",
+    "color_scheme": ["#F5E6B8", "#9AA8B5", "#FFFFFF", "#E88B8B", "#1A1A1A"],
+    "frame_budget": {
+      "idle": 12,
+      "walk": 16,
+      "run": 12,
+      "sleep": 8,
+      "interact": 12,
+      "jump_fall": 8,
+      "reserved": 4,
+      "total": 72
+    },
+    "generated_at": "2026-08-19",
+    "hatchpet_version": "1.0"
+  }
+}

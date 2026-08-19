@@ -6,7 +6,7 @@
 
 > 作者：线条小狗 (Line Dog) · GitHub：[2154911078-ship-it](https://github.com/2154911078-ship-it)
 
-包含两个功能插件（GIF 动态壁纸、`@文件` 选择附加）和一套动态壁纸资源库，以及配套的安装 / 同步脚本。所有代码均为纯 JavaScript + PowerShell，无编译步骤，复制即用。
+包含三个插件（GIF 动态壁纸、`@文件` 选择附加、鲨鱼帽小熊桌宠）、一套动态壁纸资源库和一个桌宠源项目，以及配套的安装 / 同步脚本。所有代码均为纯 JavaScript + PowerShell，无编译步骤，复制即用。
 
 ## 目录结构
 
@@ -24,14 +24,19 @@ deepseek/
 │   ├── lib/index.js           #   Host 端：文件列表接口 + 消息内联扩展
 │   ├── lib/index.d.ts
 │   └── smoke.mjs              #   Host 端冒烟测试（mock ctx 驱动 apply()）
+├── shark-hood-bear-pet/       # 鲨鱼帽小熊桌宠完整项目
+│   ├── README.md              #   桌宠项目说明（动作/安装/技术要点）
+│   ├── pet/                   #   桌宠源项目（图集、动作配置、源素材）
+│   └── plugins/               #   配套插件
+│       ├── dsh-shark-pet/         #   桌宠静态插件（页面渲染桌宠）
+│       └── dsh-wallpaper-control/ #   壁纸控制静态插件（🖼️ 壁纸管理）
 ├── wallpapers/                # 壁纸库
 │   ├── steam-wallpaper.gif    #   动态壁纸资源
 │   ├── sync-wallpapers.ps1    #   同步脚本：把图片安装到 GUI 壁纸库
 │   └── 说明.txt                #   使用说明
 ├── wallpaper.gif              # 默认壁纸（插件自带）
 ├── 89898.png                  # 设计图
-├── check-dshmarket.mjs        # 开发辅助：查询 dshmarket registry 信息
-└── dsh-boot-fix.ps1           # 机器相关：开机卡 logo 修复脚本（可选，慎用）
+└── check-dshmarket.mjs        # 开发辅助：查询 dshmarket registry 信息
 ```
 
 ## 插件一：dsh-gif-wallpaper（GIF 动态壁纸）
@@ -66,11 +71,43 @@ deepseek/
 
 **路径安全**：只解析工作区根目录**内部**的文件，`node_modules`、`.git`、`dist` 等目录一律跳过。
 
+## 插件三 / 项目：鲨鱼帽小熊桌宠（shark-hood-bear-pet）
+
+一只戴着灰色鲨鱼头套的奶油色小熊桌宠，配套两个 DSH 本地插件，完整项目见 [`shark-hood-bear-pet/`](shark-hood-bear-pet/)。
+
+**动作列表（6 个动作）**
+
+| 动作 | 帧数 | 帧率 | 循环 | 说明 |
+|------|------|------|------|------|
+| idle | 12 | 6fps | 是 | 待机呼吸+眨眼 |
+| walk | 16 | 10fps | 是 | 行走 |
+| run | 12 | 12fps | 是 | 奔跑 |
+| sleep | 8 | 4fps(客户端2fps) | 是 | 休眠 |
+| interact | 12 | 8fps | 否 | 点击互动 |
+| jump_fall | 8 | 8fps | 否 | 跳跃下落 |
+
+**插件功能**
+- `dsh-shark-pet`（桌宠）：全屏浮动桌宠（shell.overlay），逐帧对齐补偿消除 AI 帧抖动，
+  左键点击互动、拖拽甩出（带惯性奔跑）、右键头顶倒 U 弧形菜单，30 秒无操作自动入睡
+- `dsh-wallpaper-control`（壁纸控制）：右下角 🖼️ 壁纸管理面板（选择文件/壁纸列表/透明度/暂停），
+  并精简 Cordis 插件面板
+
+**桌宠素材路径（按优先级解析）**
+
+1. 环境变量 `DSH_PET_BASE`（推荐，可移植）
+2. 仓库内相对路径 `shark-hood-bear-pet/pet/pet`（仓库自包含）
+3. 原作者机器绝对路径（兼容回退）
+
+**安装**：把 `shark-hood-bear-pet/plugins/` 下的两个插件复制到 DSH profile 的
+`node_modules`，并在 `cordis.patch.yml` 中加入对应 insert 条目（详见
+[`shark-hood-bear-pet/README.md`](shark-hood-bear-pet/README.md)）。
+
 ## 安装到 DSH
 
 插件是「复制 + 声明」两步安装，无需编译：
 
-1. 把 `dsh-gif-wallpaper`、`dsh-at-file` 两个文件夹复制到你的 DSH profile 的
+1. 把 `dsh-gif-wallpaper`、`dsh-at-file` 两个文件夹（以及 `shark-hood-bear-pet/plugins/` 下
+   的 `dsh-shark-pet`、`dsh-wallpaper-control`）复制到你的 DSH profile 的
    `node_modules` 目录下（例如 `%USERPROFILE%\.dsh\profiles\node_modules\`）。
 2. 在 profile 的补丁层 `cordis.patch.yml`（例如 `%USERPROFILE%\.dsh\profiles\web\cordis.patch.yml`）中加入插入条目：
 
@@ -81,6 +118,12 @@ deepseek/
 - insert:
     - id: "dsh-at-file"
       name: "dsh-at-file"
+- insert:
+    - id: "dsh-shark-pet"
+      name: "dsh-shark-pet"
+- insert:
+    - id: "dsh-wallpaper-control"
+      name: "dsh-wallpaper-control"
 ```
 
 3. 重启 DSH Web 服务即可生效。
@@ -102,7 +145,6 @@ MIT License。详见 [LICENSE](LICENSE)。
 
 ## 免责声明
 
-- `dsh-boot-fix.ps1` 是**机器相关**的开机修复脚本（禁用服务、关闭快速启动、清理目录），
-  请仅在确认需要时使用，发布到公共仓库前建议自行评估是否包含。
-- 各插件内默认的壁纸路径与 Wallpaper Engine 工坊资源路径为原作者机器的实际路径，
-  在其它机器上请通过环境变量或修改 `CANDIDATES` 适配。
+- `shark-hood-bear-pet/` 项目内的许可声明为「仅供个人学习和非商业用途使用」，见其 README。
+- 各插件内默认的壁纸 / 桌宠路径为原作者机器的实际路径，在其它机器上请通过环境变量
+  （`DSH_WALLPAPER_PATH`、`DSH_PET_BASE`）或修改源码适配。

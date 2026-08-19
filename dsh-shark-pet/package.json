@@ -1,0 +1,37 @@
+{
+  "name": "dsh-shark-pet",
+  "version": "1.0.0",
+  "description": "鲨鱼帽小熊桌宠 —— 本地永久插件：全屏浮动桌宠，沿用 pet 文件夹全部动作，默认启动",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./client.js",
+    "./client.js": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client.js"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-host-webserver": "*",
+    "react": "^18.2.0"
+  },
+  "license": "MIT"
+}
