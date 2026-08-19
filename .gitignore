@@ -1,0 +1,22 @@
+# 忽略个人/机器相关文件与日志
+dsh-boot-fix-log.txt
+*.log
+
+# 测试残留
+modlens-test.png
+*.tmp
+
+# Node
+node_modules/
+.pnpm-store/
+*.tgz
+
+# 本地工具（便携版 git 等）
+.tools/
+
+# 系统与编辑器
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
