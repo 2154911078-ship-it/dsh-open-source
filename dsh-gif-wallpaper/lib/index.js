@@ -14,7 +14,7 @@
 import { existsSync } from "node:fs";
 import { stat, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { join } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 
 export const name = "gif-wallpaper";
@@ -35,6 +35,9 @@ const CANDIDATES = process.env.DSH_WALLPAPER_PATH
 		"D:\\桌面\\deepseek\\wallpaper.gif"
 	];
 const STATIC_PATH = join(tmpdir(), "dsh-wallpaper-static.jpg");
+/** Persistent, update-surviving static assets bundled with this plugin. */
+const ASSETS_DIR = join(import.meta.dirname, "..", "assets");
+const ASSET_MIME = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".json": "application/json" };
 
 let staticCache = { version: null };
 
@@ -101,6 +104,25 @@ async function serveFile(res, path, contentType) {
 function sendJson(res, status, body) {
 	res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
 	res.end(JSON.stringify(body));
+}
+
+/** Serve one bundled asset, rejecting traversal outside ASSETS_DIR. */
+async function servePluginAsset(res, relPath) {
+	const target = resolve(join(ASSETS_DIR, relPath));
+	if (target !== ASSETS_DIR && !target.startsWith(ASSETS_DIR + sep)) {
+		res.writeHead(403, { "content-type": "text/plain" });
+		res.end("forbidden");
+		return;
+	}
+	try {
+		const bytes = await readFile(target);
+		const ct = ASSET_MIME[extname(target)] ?? "application/octet-stream";
+		res.writeHead(200, { "content-type": ct, "cache-control": "no-store", "content-length": bytes.length });
+		res.end(bytes);
+	} catch (error) {
+		res.writeHead(404, { "content-type": "text/plain" });
+		res.end("asset missing: " + relPath);
+	}
 }
 
 /** Mount the wallpaper routes. */
@@ -171,4 +193,38 @@ export function apply(ctx) {
 			}
 		}
 	}), "gif-wallpaper: status route");
+
+	// ── persistent plugin-bundled static assets (survive DSH updates) ──────
+	// These take precedence over the frontend-static dist fallback, so the
+	// custom logo/banner/wallpaper library keep working even after `npx`
+	// re-installs and wipes the official `dsh-web-frontend` dist assets.
+	const assetRoute = (kind, path, rel) => ctx.effect(() => ctx.webServer.register({
+		kind,
+		path,
+		handler: async (req, res) => {
+			await servePluginAsset(res, rel);
+		}
+	}), "gif-wallpaper: asset " + path);
+	assetRoute("exact", "/assets/dsh-logo.png", "dsh-logo.png");
+	assetRoute("exact", "/assets/dsh-plugin-banner.png", "dsh-plugin-banner.png");
+	assetRoute("exact", "/assets/wallpapers/manifest.json", "wallpapers/manifest.json");
+	const WALLPAPERS_PREFIX = "/assets/wallpapers/";
+	ctx.effect(() => ctx.webServer.register({
+		kind: "prefix",
+		path: WALLPAPERS_PREFIX,
+		handler: async (req, res) => {
+			try {
+				const p = new URL(req.url ?? "/", "http://dsh.local").pathname;
+				if (!p.startsWith(WALLPAPERS_PREFIX)) {
+					res.writeHead(404, { "content-type": "text/plain" });
+					res.end();
+					return;
+				}
+				await servePluginAsset(res, "wallpapers/" + p.slice(WALLPAPERS_PREFIX.length));
+			} catch (error) {
+				res.writeHead(500, { "content-type": "text/plain" });
+				res.end("asset error: " + String((error && error.message) || error));
+			}
+		}
+	}), "gif-wallpaper: wallpapers prefix");
 }
