@@ -739,14 +739,15 @@ window.__ModuleLoader__.load({
 				brandEl.dataset.pluginCss = "dsh-gif-wallpaper/brand-overrides";
 				brandEl.textContent =
 					'[class*="headline"] { grid-template-columns: 64px auto auto; }' +
-					'[class*="fishHitbox"] { width: 64px !important; height: 64px !important; background: url("/assets/dsh-logo.png?v=2") center / contain no-repeat !important; }' +
+					'[class*="fishHitbox"] { width: 64px !important; height: 64px !important; background: url("/assets/dsh-logo.png?v=4") center / contain no-repeat !important; }' +
 					'[class*="fishHitbox"] svg { display: none !important; }' +
 					'[class*="previewBadge"] { display: none !important; }' +
 					'[class*="logoRow"] { height: 80px !important; }' +
 					'[class*="collapsed"] [class*="logoRow"] { height: 36px !important; }' +
-					'[class*="logoRow"] [class*="brand"] { height: 56px !important; padding-left: 58px !important; background: url("/assets/dsh-logo.png?v=2") left center / auto 56px no-repeat !important; }' +
+					'[class*="brandMark"] { display: none !important; }' +
+					'[class*="logoRow"] > [class*="brand"] { height: 56px !important; padding-left: 58px !important; background: url("/assets/dsh-logo.png?v=4") left center / auto 56px no-repeat !important; }' +
 					'[class*="railFish"] { display: none !important; }' +
-					'[class*="collapsed"] [class*="toggle"] { background: url("/assets/dsh-logo.png?v=2") center / auto 36px no-repeat !important; }' +
+					'[class*="collapsed"] [class*="toggle"] { background: url("/assets/dsh-logo.png?v=4") center / auto 36px no-repeat !important; }' +
 					'[class*="collapsed"] [class*="toggle"]:hover { background-image: none !important; }';
 				document.head.appendChild(brandEl);
 				return () => {
