@@ -434,8 +434,30 @@ window.__ModuleLoader__.load({
 								},
 								"取消暂存"
 							),
-							notice ? react.createElement("span", { style: Object.assign({ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, MUTED) }, notice) : null
-						)
+							react.createElement(
+								"button",
+								{
+									type: "button",
+									disabled: busy,
+									onClick: () => write("push", {}),
+									title: "推送到远端（git push）",
+									style: {
+										flex: "none", height: 24, padding: "0 10px", borderRadius: 7,
+										border: "1px solid rgba(88,166,255,0.35)",
+										background: "rgba(88,166,255,0.14)", color: "#79b8ff",
+										fontFamily: "inherit", fontSize: 11.5, cursor: busy ? "default" : "pointer"
+									}
+								},
+								"推送 ↑"
+							)
+						),
+						notice
+							? react.createElement(
+								"div",
+								{ style: Object.assign({ whiteSpace: "pre-wrap", wordBreak: "break-all", lineHeight: 1.5, maxHeight: 110, overflow: "auto" }, MUTED) },
+								notice
+							)
+							: null
 					)
 					: null,
 				react.createElement("div", { style: { height: 1, background: "var(--dsw-alias-border-l1, rgba(255,255,255,0.07))", flex: "none" } }),

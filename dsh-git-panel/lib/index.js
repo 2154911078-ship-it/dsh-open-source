@@ -334,6 +334,39 @@ async function commitStaged(git, repo, message) {
 	return { ok: true, summary };
 }
 
+/**
+ * Push the current branch to its configured upstream.
+ *
+ * Credentials are never read or stored here: `git push` resolves them through
+ * whatever helper the user configured (e.g. `credential.helper store`), so this
+ * route only needs to report why a push failed.
+ */
+async function pushBranch(git, repo) {
+	const upstream = await runGit(git.path, [
+		"-C", repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"
+	]);
+	if (upstream.code !== 0) {
+		return { ok: false, error: "当前分支没有远端跟踪（upstream）。先在终端执行一次：git push -u origin <分支名>" };
+	}
+	const branch = upstream.stdout.trim() || "@{u}";
+	const result = await runGit(git.path, ["-C", repo, "push"], { timeoutMs: 180000 });
+	const detail = ((result.stdout || "") + (result.stderr || "")).trim();
+	if (result.code !== 0) {
+		if (/could not read Username|Authentication failed|terminal prompts disabled|403|Permission denied/i.test(detail)) {
+			return {
+				ok: false,
+				error: "推送需要 GitHub 凭据：请先在终端执行一次 `git config credential.helper store` 并手动完成一次 push（输入 token），之后本面板即可直接推送。\n\n" + detail
+			};
+		}
+		if (/non-fast-forward|\[rejected\]|fetch first|behind/i.test(detail)) {
+			return { ok: false, error: "远端有新的提交，需要先拉取合并（git pull --rebase）再推送。\n\n" + detail };
+		}
+		return { ok: false, error: detail || "git push 失败" };
+	}
+	const lines = detail.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+	return { ok: true, summary: (lines.length > 0 ? lines[lines.length - 1] : "推送完成") + "  →  " + branch };
+}
+
 /** Send one JSON response. */
 function sendJson(res, status, body) {
 	res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
@@ -440,4 +473,5 @@ export function apply(ctx) {
 	writeRoute("/dsh-git-panel/stage", (git, repo, body) => stagePaths(git, repo, body.paths));
 	writeRoute("/dsh-git-panel/unstage", (git, repo) => unstageAll(git, repo));
 	writeRoute("/dsh-git-panel/commit", (git, repo, body) => commitStaged(git, repo, body.message));
+	writeRoute("/dsh-git-panel/push", (git, repo) => pushBranch(git, repo));
 }
