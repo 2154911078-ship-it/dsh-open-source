@@ -8,12 +8,23 @@
 
 > 🚀 **想装出和我一模一样的 DSH 界面？** 请看 [**INSTALL.md —— 从零复现完整安装指南**](INSTALL.md)（含 DSH 本体安装、模型配置、全部插件、壁纸、桌宠、主题）。
 
-包含三个插件（GIF 动态壁纸、`@文件` 选择附加、鲨鱼帽小熊桌宠）、一套动态壁纸资源库和一个桌宠源项目，以及配套的安装 / 同步脚本。所有代码均为纯 JavaScript + PowerShell，无编译步骤，复制即用。
+包含 **五个插件**（GIF 动态壁纸、`@文件` 选择附加、Git 面板、API 配额查询、鲨鱼帽小熊桌宠）、一套动态壁纸资源库和一个桌宠源项目，以及配套的安装 / 同步脚本。所有代码均为纯 JavaScript + PowerShell，无编译步骤，复制即用。
+
+## 插件总览
+
+| 插件 | 功能 | 界面位置 |
+|------|------|---------|
+| `dsh-gif-wallpaper` | GIF 动态壁纸、透明度滑块、壁纸库、Cordis 面板汉化 | 页面背景 · 右上角滑块 · 侧栏「插件」 |
+| `dsh-at-file` | 输入 `@` 弹出工作区文件选择器，文件内容随消息内联 | 输入框 |
+| `dsh-git-panel` | Git 面板：分支 / 状态 / diff / 提交历史 + 暂存 / 提交 / 推送 | 右侧栏标签页 · 标题栏 `⑂ Git` |
+| `dsh-quota-checker` | 手动查询 OpenAI 兼容 API 配额（不自动发起请求） | 侧栏底部 |
+| `dsh-shark-pet` | 鲨鱼帽小熊桌宠（6 个动作、拖拽、互动） | 全屏浮动 |
+| `dsh-wallpaper-control` | 壁纸管理面板 + Cordis 插件面板精简 | 右下角 🖼️ |
 
 ## 目录结构
 
 ```
-deepseek/
+dsh-open-source/
 ├── docs/cover.png              # 仓库预览图（README 顶部展示）
 ├── dsh-gif-wallpaper/         # 插件：GIF 动态壁纸（网页背景）
 │   ├── package.json           #   插件元数据（Cordis 客户端注入声明）
@@ -26,6 +37,16 @@ deepseek/
 │   ├── lib/index.js           #   Host 端：文件列表接口 + 消息内联扩展
 │   ├── lib/index.d.ts
 │   └── smoke.mjs              #   Host 端冒烟测试（mock ctx 驱动 apply()）
+├── dsh-git-panel/             # 插件：Git 面板（右侧栏标签页）
+│   ├── package.json
+│   ├── client.js              #   浏览器端：右侧栏标签 + 标题栏入口 + 暂存/提交/推送工具条
+│   ├── lib/index.js           #   Host 端：status/diff/branches + stage/unstage/commit/push
+│   ├── lib/index.d.ts
+│   └── smoke.mjs              #   Host 端冒烟测试
+├── dsh-quota-checker/         # 插件：OpenAI 兼容 API 配额查询（纯前端）
+│   ├── package.json
+│   ├── client.js              #   浏览器端：配额查询面板
+│   └── lib/index.js           #   Host 端：占位实现（无路由）
 ├── shark-hood-bear-pet/       # 鲨鱼帽小熊桌宠完整项目
 │   ├── README.md              #   桌宠项目说明（动作/安装/技术要点）
 │   ├── pet/                   #   桌宠源项目（图集、动作配置、源素材）
@@ -73,7 +94,39 @@ deepseek/
 
 **路径安全**：只解析工作区根目录**内部**的文件，`node_modules`、`.git`、`dist` 等目录一律跳过。
 
-## 插件三 / 项目：鲨鱼帽小熊桌宠（shark-hood-bear-pet）
+## 插件三：dsh-git-panel（Git 面板）
+
+在 DSH 右侧栏查看并管理任意本地 Git 仓库：分支、改动、diff、提交历史，并支持暂存 / 提交 / 推送。
+
+**功能**
+- Host 端同源路由（全部通过固定参数 `spawn` 调用 git，无 shell 注入面）：
+  - `GET /dsh-git-panel/status?repo=<路径>` —— 分支、HEAD、ahead/behind、改动列表、最近 20 条提交
+  - `GET /dsh-git-panel/diff?repo=&file=&staged=&untracked=` —— 单文件 diff；未跟踪文件返回内容预览
+  - `GET /dsh-git-panel/branches?repo=` —— 本地分支列表
+  - `POST /dsh-git-panel/stage` / `unstage` / `commit` / `push` —— 暂存 / 取消暂存 / 提交 / 推送
+- 浏览器端以 **右侧栏标签页**呈现（与「文件」「文档预览」并列），会话标题栏 `⑂ Git` 作为入口
+- 改动列表按 git 约定着色（`M` 黄 / `A` 绿 / `D` 红 / `??` 灰 / `R` 紫），点任意一行查看 diff（`+` 绿底、`-` 红底、`@@` 蓝字）
+- 提交信息框回车即提交；工具条提供「暂存全部 / 取消暂存 / 推送 ↑」
+- 面板打开时每 10 秒自动刷新（输入路径时不会被刷新覆盖），也可手动 `↻`；仓库路径保存在 localStorage
+
+**git 可执行文件解析顺序**
+
+1. 环境变量 `DSH_GIT_PATH`（显式指定）
+2. 便携版 `tools/git/cmd/git.exe`（MinGit，零安装）
+3. `PATH` 中的 `git`
+
+**凭据**：插件不读取、不存储任何凭据 —— `push` 完全交给 git 自己的 credential helper
+（例如 `git config credential.helper store`）；推送失败时面板会直接显示 git 的原始原因
+（凭据缺失 / 远端有新提交 / 无 upstream）。
+
+## 插件四：dsh-quota-checker（API 配额查询）
+
+手动查询 OpenAI 兼容接口的额度 / 余额，**不会自动发起请求**：在侧栏面板填入接口地址与 Key，
+点击查询后才发一次请求，返回结果按字段名（`quota` / `balance` / `remaining` / `usage` …）就地展开。
+
+> 默认接口是作者自用地址，可在面板里改成任意 OpenAI 兼容端点。
+
+## 插件五 / 项目：鲨鱼帽小熊桌宠（shark-hood-bear-pet）
 
 一只戴着灰色鲨鱼头套的奶油色小熊桌宠，配套两个 DSH 本地插件，完整项目见 [`shark-hood-bear-pet/`](shark-hood-bear-pet/)。
 
@@ -108,9 +161,9 @@ deepseek/
 
 插件是「复制 + 声明」两步安装，无需编译：
 
-1. 把 `dsh-gif-wallpaper`、`dsh-at-file` 两个文件夹（以及 `shark-hood-bear-pet/plugins/` 下
-   的 `dsh-shark-pet`、`dsh-wallpaper-control`）复制到你的 DSH profile 的
-   `node_modules` 目录下（例如 `%USERPROFILE%\.dsh\profiles\node_modules\`）。
+1. 把 `dsh-gif-wallpaper`、`dsh-at-file`、`dsh-git-panel`、`dsh-quota-checker` 四个文件夹
+   （以及 `shark-hood-bear-pet/plugins/` 下的 `dsh-shark-pet`、`dsh-wallpaper-control`）复制到
+   你的 DSH profile 的 `node_modules` 目录下（例如 `%USERPROFILE%\.dsh\profiles\node_modules\`）。
 2. 在 profile 的补丁层 `cordis.patch.yml`（例如 `%USERPROFILE%\.dsh\profiles\web\cordis.patch.yml`）中加入插入条目：
 
 ```yaml
@@ -126,9 +179,26 @@ deepseek/
 - insert:
     - id: "dsh-wallpaper-control"
       name: "dsh-wallpaper-control"
+- insert:
+    - id: "dsh-git-panel"
+      name: "dsh-git-panel"
+- insert:
+    - id: "dsh-quota-checker"
+      name: "dsh-quota-checker"
 ```
 
 3. 重启 DSH Web 服务即可生效。
+
+> ⚠️ 只改 `client.js` 时可以靠 profile 的热重载生效；**改动插件的 host 端（`lib/index.js`）必须重启 DSH**
+> —— Node 会缓存同路径的 ES 模块，热重载不会重新加载它。
+
+### Git 面板的前置条件（可选）
+
+`dsh-git-panel` 需要一个可用的 `git`，三种方式任选：
+
+- **零安装**：下载 [MinGit](https://github.com/git-for-windows/git/releases)（便携版）解压到 `tools/git/`；
+- 或直接使用系统已安装的 Git（会被自动发现）；
+- 或设置环境变量 `DSH_GIT_PATH` 指向任意 `git.exe`。
 
 ## 壁纸库用法
 
@@ -148,5 +218,5 @@ MIT License。详见 [LICENSE](LICENSE)。
 ## 免责声明
 
 - `shark-hood-bear-pet/` 项目内的许可声明为「仅供个人学习和非商业用途使用」，见其 README。
-- 各插件内默认的壁纸 / 桌宠路径为原作者机器的实际路径，在其它机器上请通过环境变量
-  （`DSH_WALLPAPER_PATH`、`DSH_PET_BASE`）或修改源码适配。
+- 各插件内默认的壁纸 / 桌宠 / git 路径为原作者机器的实际路径，在其它机器上请通过环境变量
+  （`DSH_WALLPAPER_PATH`、`DSH_PET_BASE`、`DSH_GIT_PATH`）或修改源码适配。

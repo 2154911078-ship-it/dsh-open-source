@@ -25,10 +25,10 @@ git --version   # 可选，用于克隆仓库
 
 ## 第 1 步：安装 DSH 本体
 
-DSH（DeepSeek Harness）本体通过 npm 启动，作者使用版本为 `0.1.0-rc.7`：
+DSH（DeepSeek Harness）本体通过 npm 启动，作者当前使用版本为 `0.1.5-rc.1`（本文的插件也在 `0.1.2-rc.1` 上验证过）：
 
 ```powershell
-npx -y @deepseek-ai/dsh@0.1.0-rc.7
+npx -y @deepseek-ai/dsh@0.1.5-rc.1
 ```
 
 首次运行会：
@@ -41,7 +41,7 @@ npx -y @deepseek-ai/dsh@0.1.0-rc.7
 
 启动成功后浏览器打开 http://127.0.0.1:3080 应能看到 DSH 界面。
 
-> 如果后续步骤需要重启 DSH：Ctrl+C 停掉进程后重新执行 `npx -y @deepseek-ai/dsh@0.1.0-rc.7`。
+> 如果后续步骤需要重启 DSH：Ctrl+C 停掉进程后重新执行 `npx -y @deepseek-ai/dsh@0.1.5-rc.1`。
 
 ---
 
@@ -85,7 +85,7 @@ git clone https://github.com/2154911078-ship-it/dsh-open-source.git
 
 ### 3.2 复制插件到 DSH profile
 
-把以下 **4 个插件** 复制到 DSH profile 的 node_modules：
+把以下 **6 个插件** 复制到 DSH profile 的 node_modules：
 
 ```powershell
 # 1. GIF 动态壁纸
@@ -94,10 +94,16 @@ Copy-Item D:\dsh-open-source\dsh-gif-wallpaper C:\Users\<你的用户名>\.dsh\p
 # 2. @文件 选择
 Copy-Item D:\dsh-open-source\dsh-at-file C:\Users\<你的用户名>\.dsh\profiles\node_modules\ -Recurse
 
-# 3. 鲨鱼帽小熊桌宠（在桌宠项目里）
+# 3. Git 面板（右侧栏标签页）
+Copy-Item D:\dsh-open-source\dsh-git-panel C:\Users\<你的用户名>\.dsh\profiles\node_modules\ -Recurse
+
+# 4. API 配额查询
+Copy-Item D:\dsh-open-source\dsh-quota-checker C:\Users\<你的用户名>\.dsh\profiles\node_modules\ -Recurse
+
+# 5. 鲨鱼帽小熊桌宠（在桌宠项目里）
 Copy-Item D:\dsh-open-source\shark-hood-bear-pet\plugins\dsh-shark-pet C:\Users\<你的用户名>\.dsh\profiles\node_modules\ -Recurse
 
-# 4. 壁纸控制
+# 6. 壁纸控制
 Copy-Item D:\dsh-open-source\shark-hood-bear-pet\plugins\dsh-wallpaper-control C:\Users\<你的用户名>\.dsh\profiles\node_modules\ -Recurse
 ```
 
@@ -120,18 +126,32 @@ Copy-Item D:\dsh-open-source\shark-hood-bear-pet\plugins\dsh-wallpaper-control C
 - insert:
     - id: "dsh-wallpaper-control"
       name: "dsh-wallpaper-control"
+- insert:
+    - id: "dsh-git-panel"
+      name: "dsh-git-panel"
+- insert:
+    - id: "dsh-quota-checker"
+      name: "dsh-quota-checker"
 ```
 
 > 注意：如果该文件里已有其他 insert 条目，**追加**即可，不要删除原有的。
 
 ### 3.4 重启 DSH
 
-Ctrl+C 停止 DSH，重新 `npx -y @deepseek-ai/dsh@0.1.0-rc.7`。
+Ctrl+C 停止 DSH，然后重新启动（例如 `npx -y @deepseek-ai/dsh@latest`）。
 
 刷新页面后应看到：
 - 🖼️ 右上角「空心星 + 竖条滑块」（壁纸透明度）
 - 🐻 鲨鱼帽小熊桌宠在页面上浮动
 - 🖼️ 右下角壁纸管理按钮
+- ⑂ 会话标题栏右侧的「⑂ Git」按钮，以及右侧栏的「Git」标签页
+- 🧩 侧栏底部「插件」面板里多出「API 配额」
+
+> **Git 面板的前置条件**：需要一个可用的 `git` —— 便携版 MinGit 放到 `tools/git/`、
+> 使用系统已安装的 Git、或设置环境变量 `DSH_GIT_PATH`，三选一即可。
+>
+> **热重载的边界**：只改插件的 `client.js` 可以靠 profile 热重载生效；
+> **改 host 端 `lib/index.js` 必须重启 DSH**（Node 会缓存同路径的 ES 模块）。
 
 ---
 
@@ -223,4 +243,4 @@ ui-theme:
 
 ---
 
-*本文档由作者整理，对应 DSH `0.1.0-rc.7`。DSH 本体更新后部分路径可能变化，以实际为准。*
+*本文档由作者整理，对应 DSH `0.1.5-rc.1`。DSH 本体更新后部分路径可能变化，以实际为准。*

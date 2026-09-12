@@ -1,7 +1,7 @@
 {
   "name": "dsh-git-panel",
   "version": "0.1.0",
-  "description": "Git 面板 —— 本地永久插件：侧栏按钮 + 弹窗查看仓库状态 / 改动 / 提交 / diff",
+  "description": "Git 面板 —— 本地永久插件：右侧栏标签页 + 标题栏入口，查看仓库状态 / 改动 / diff / 提交，并支持暂存 / 提交 / 推送",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
