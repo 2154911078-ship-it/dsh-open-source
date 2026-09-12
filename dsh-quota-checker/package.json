@@ -1,0 +1,26 @@
+{
+  "name": "dsh-quota-checker",
+  "version": "0.1.0",
+  "description": "手动查询 OpenAI 兼容 API 配额，不自动发起请求",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": { "default": "./lib/index.js" },
+    "./client": "./client.js",
+    "./client.js": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["lib", "client.js"],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-slots"]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-host-webserver": "*",
+    "react": "^18.2.0"
+  },
+  "license": "MIT"
+}

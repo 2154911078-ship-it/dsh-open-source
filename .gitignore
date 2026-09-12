@@ -34,3 +34,6 @@ Desktop.ini
 .DS_Store
 .idea/
 .vscode/
+
+# 打包产物（不入版本库）
+dsh-open-source.zip
