@@ -80,16 +80,19 @@ node adapt-petdex-pet.mjs <源目录> <输出目录>
 setx DSH_PET_BASE "D:\deepseek\pets\line-puppy"
 ```
 
-九行状态 → 本插件六个动作的映射：
+九行状态全部保留为可播放动作（右键菜单的按钮数量 = 宠物配置里的动作数量）：
 
-| Codex 状态行 | 本插件动作 | 说明 |
+| Codex 状态行 | 本插件动作 | 中文按钮 |
 |---|---|---|
 | idle | idle | 待机 |
-| running-right | walk | 行走 |
+| running-right | walk | 散步 |
+| running-left | walk_left | 向左走 |
+| waving | interact | 互动 |
+| jumping | jump_fall | 跳跃 |
+| failed | failed | 失败 |
+| waiting | sleep | 睡觉 |
 | running | run | 奔跑 |
-| waiting | sleep | 休眠 |
-| waving | interact | 点击互动 |
-| jumping | jump_fall | 跳跃/下落 |
+| review | review | 审阅 |
 
 > 转换出的 `pet.json` 带空的 `align` 表，插件会优先采用它，从而不做逐格补偿
 > （内置补偿表是给鲨鱼熊素材调的）。

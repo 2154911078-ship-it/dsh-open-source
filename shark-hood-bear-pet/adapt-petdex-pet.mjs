@@ -24,14 +24,17 @@ const DST_CELL = 256;
 const DST_W = COLS * DST_CELL;
 const DST_H = ROWS * DST_CELL;
 
-/** Codex/petdex 的九行状态 → 本插件的六个动作（按行优先的格子区间）。 */
+/** Codex/petdex 的九行状态 → 本插件的动作（全部保留；行为系统引用的名字都在其中）。 */
 const ACTION_MAP = [
-	{ action: "idle", row: 0, fps: 6, loop: true, label: "待机" },
-	{ action: "walk", row: 1, fps: 10, loop: true, label: "行走（取 running-right 行）" },
-	{ action: "run", row: 7, fps: 12, loop: true, label: "奔跑" },
-	{ action: "sleep", row: 6, fps: 4, loop: true, label: "休眠（取 waiting 行）" },
-	{ action: "interact", row: 3, fps: 8, loop: false, label: "点击互动（取 waving 行）" },
-	{ action: "jump_fall", row: 4, fps: 8, loop: false, label: "跳跃（取 jumping 行）" }
+	{ action: "idle", row: 0, fps: 6, loop: true, label: "待机（Codex: idle）" },
+	{ action: "walk", row: 1, fps: 10, loop: true, label: "行走（Codex: running-right）" },
+	{ action: "walk_left", row: 2, fps: 10, loop: true, label: "向左走（Codex: running-left）" },
+	{ action: "interact", row: 3, fps: 8, loop: false, label: "互动（Codex: waving）" },
+	{ action: "jump_fall", row: 4, fps: 8, loop: false, label: "跳跃（Codex: jumping）" },
+	{ action: "failed", row: 5, fps: 8, loop: true, label: "失败（Codex: failed）" },
+	{ action: "sleep", row: 6, fps: 4, loop: true, label: "休眠（Codex: waiting）" },
+	{ action: "run", row: 7, fps: 12, loop: true, label: "奔跑（Codex: running）" },
+	{ action: "review", row: 8, fps: 6, loop: true, label: "审阅（Codex: review）" }
 ];
 
 function fail(message) {

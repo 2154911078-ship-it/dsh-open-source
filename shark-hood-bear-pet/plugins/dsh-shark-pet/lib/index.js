@@ -64,13 +64,12 @@ async function loadSprite(ctx) {
 }
 
 async function loadConfig(ctx) {
-	if (configCache) return configCache;
 	const fs = ctx.get("fs");
 	if (!fs) throw new Error("fs 服务不可用");
 	const target = await fs.resolve(CONFIG_PATH);
 	const text = await fs.readText(target);
-	configCache = JSON.parse(text);
-	return configCache;
+	// 不缓存：pet.json 很小，换宠物 / 调动作后刷新页面即可生效
+	return JSON.parse(text);
 }
 
 function sendJson(res, status, body) {

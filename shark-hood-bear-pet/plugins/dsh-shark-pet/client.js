@@ -34,11 +34,18 @@ window.__ModuleLoader__.load({
 		const SLEEP_SEQ = [0, 1, 3, 3, 1, 0];
 		const ARC_R = 84;
 		const ARC_GAP = 24;
-		const ANIM_NAMES = { idle: "待机", walk: "散步", run: "奔跑", sleep: "睡觉", interact: "互动", jump_fall: "跳跃" };
-		const BUTTONS = [
-			{ anim: "idle", label: "待机" }, { anim: "walk", label: "散步" }, { anim: "run", label: "奔跑" },
-			{ anim: "sleep", label: "睡觉" }, { anim: "interact", label: "互动" }, { anim: "jump_fall", label: "跳跃" }
-		];
+		const ANIM_NAMES = {
+			idle: "待机", walk: "散步", walk_left: "向左走", run: "奔跑", sleep: "睡觉",
+			interact: "互动", jump_fall: "跳跃", failed: "失败", review: "审阅", waiting: "等待"
+		};
+		/**
+		 * 右键菜单的动作按钮：直接由宠物配置的 animations 生成，
+		 * 所以宠物有多少动作就有多少按钮（petdex 宠物通常 9 个）。
+		 */
+		function actionButtons(cfg) {
+			const animations = cfg && cfg.animations ? Object.keys(cfg.animations) : [];
+			return animations.map((key) => ({ anim: key, label: ANIM_NAMES[key] || key }));
+		}
 
 		// module-scope engine state (survives across renders for the plugin's life)
 		let appCtx = null;
@@ -475,13 +482,16 @@ window.__ModuleLoader__.load({
 				touchAction: "none"
 			};
 
-			const n = BUTTONS.length;
+			const buttons = actionButtons(c);
+			const n = Math.max(2, buttons.length);
+			// 动作多时把弧半径放大，避免按钮互相挤在一起
+			const arcR = Math.max(ARC_R, Math.min(170, buttons.length * 19));
 			const arcCx = pet.x;
 			const arcBaseY = pet.feetY - ANCHOR_Y * SCALE - ARC_GAP;
-			const arcBtns = pet.menu.open ? BUTTONS.map((btn, i) => {
+			const arcBtns = pet.menu.open ? buttons.map((btn, i) => {
 				const theta = (Math.PI * i) / (n - 1);
-				const bx = arcCx + ARC_R * Math.cos(theta) - 17;
-				const by = arcBaseY - ARC_R * Math.sin(theta) - 17;
+				const bx = arcCx + arcR * Math.cos(theta) - 17;
+				const by = arcBaseY - arcR * Math.sin(theta) - 17;
 				return react.createElement("button", {
 					key: btn.anim,
 					onPointerDown: (e) => { e.stopPropagation(); e.preventDefault(); manualTrigger(pet.cfg, btn.anim); pet.menu.open = false; },
