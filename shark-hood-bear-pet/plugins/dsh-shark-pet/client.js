@@ -322,29 +322,68 @@ window.__ModuleLoader__.load({
 			pet.menu.open = !pet.menu.open;
 		}
 
+		/**
+		 * 右键菜单的动作按钮入口。
+		 *
+		 * 不再逐个动作名判断——宠物配置里存在的任何动作都能播：
+		 *   · idle         回到待机
+		 *   · 再点当前动作  取消，回到待机
+		 *   · 跳跃         给一个抛物线，落地回待机
+		 *   · 走路 / 奔跑   真的走动一段（向左走朝左），到时自动停下
+		 *   · 睡觉         睡一段自动醒
+		 *   · 其余         循环播放，直到点别的动作
+		 */
 		function manualTrigger(c, anim) {
 			if (!c) return;
+			const target = c.animations[anim];
+			if (!target) return;
 			pet.idleElapsed = 0;
-			if (anim === "idle") {
+
+			const rest = () => {
 				pet.forced = null;
 				pet.action = null;
 				pet.move = null;
 				setAnim("idle");
 				pet.nextActionAt = Date.now() + 3000;
-			} else if (anim === "interact") {
-				triggerForced(c, "interact");
-			} else if (anim === "jump_fall") {
+			};
+
+			if (anim === "idle") {
+				rest();
+				return;
+			}
+			// 再点一次同一个动作 = 取消它
+			if (pet.forced === anim) {
+				rest();
+				return;
+			}
+
+			if (anim === "jump_fall") {
 				pet.airborne = true;
 				pet.vy = -JUMP_V;
 				pet.nextActionAt = Date.now() + AWAKE_AFTER_INTERACT;
-				triggerForced(c, "jump_fall");
-			} else if (anim === "walk") {
-				startAction(c, "walk", 4000, 6000);
-			} else if (anim === "run") {
-				startAction(c, "run", 2000, 3500);
-			} else if (anim === "sleep") {
-				startAction(c, "sleep", 12000, 20000);
+				triggerForced(c, anim);
+				return;
 			}
+
+			if (anim === "walk" || anim === "walk_left" || anim === "run") {
+				const dir = anim === "walk_left" ? -1 : 1;
+				const running = anim === "run";
+				pet.forced = null;
+				pet.action = { anim, until: Date.now() + (running ? rand(2000, 3500) : rand(4000, 6000)) };
+				pet.move = { type: running ? "run" : "walk", dir, speed: running ? WALK_SPEED * 2 : WALK_SPEED };
+				pet.dir = dir;
+				setAnim(anim);
+				return;
+			}
+
+			if (anim === "sleep") {
+				startAction(c, "sleep", 12000, 20000);
+				return;
+			}
+
+			// 其它任意动作：循环播放，直到点别的动作或再点一次
+			triggerForced(c, anim);
+			pet.nextActionAt = Date.now() + AWAKE_AFTER_INTERACT;
 		}
 
 		const rootStyle = {
