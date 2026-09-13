@@ -21,8 +21,8 @@ window.__ModuleLoader__.load({
 		const CELL = 256;
 		const COLS = 8;
 		const ROWS = 9;
-		const ANCHOR_Y = 230;
-		const SCALE = 0.65;
+		let ANCHOR_Y = 230;
+		const SCALE = 0.5;
 		const DISPLAY_CELL = Math.round(CELL * SCALE);
 		const GROUND_MARGIN = 24;
 		const WALK_SPEED = 0.55;
@@ -402,6 +402,9 @@ window.__ModuleLoader__.load({
 						pet.cfg = r.config;
 						pet.spriteUrl = r.spriteUrl || "";
 						pet.alignMap = r.align || null;
+						// 不同图集的脚底位置不同：宠物自带 anchor_y 时优先
+						const anchorFromConfig = r.config && r.config.sprite ? r.config.sprite.anchor_y : void 0;
+						if (Number.isFinite(anchorFromConfig)) ANCHOR_Y = anchorFromConfig;
 						const m = measureViewport();
 						if (m) { pet.vw = m.w; pet.vh = m.h; }
 						pet.x = pet.vw - 220;
