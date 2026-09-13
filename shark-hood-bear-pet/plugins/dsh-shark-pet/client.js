@@ -21,8 +21,8 @@ window.__ModuleLoader__.load({
 		const CELL = 256;
 		const COLS = 8;
 		const ROWS = 9;
-		let ANCHOR_Y = 230;
-		const SCALE = 0.5;
+		const ANCHOR_Y = 230;
+		const SCALE = 0.65;
 		const DISPLAY_CELL = Math.round(CELL * SCALE);
 		const GROUND_MARGIN = 24;
 		const WALK_SPEED = 0.55;
@@ -34,18 +34,11 @@ window.__ModuleLoader__.load({
 		const SLEEP_SEQ = [0, 1, 3, 3, 1, 0];
 		const ARC_R = 84;
 		const ARC_GAP = 24;
-		const ANIM_NAMES = {
-			idle: "待机", walk: "散步", walk_left: "向左走", run: "奔跑", sleep: "睡觉",
-			interact: "互动", jump_fall: "跳跃", failed: "失败", review: "审阅", waiting: "等待"
-		};
-		/**
-		 * 右键菜单的动作按钮：直接由宠物配置的 animations 生成，
-		 * 所以宠物有多少动作就有多少按钮（petdex 宠物通常 9 个）。
-		 */
-		function actionButtons(cfg) {
-			const animations = cfg && cfg.animations ? Object.keys(cfg.animations) : [];
-			return animations.map((key) => ({ anim: key, label: ANIM_NAMES[key] || key }));
-		}
+		const ANIM_NAMES = { idle: "待机", walk: "散步", run: "奔跑", sleep: "睡觉", interact: "互动", jump_fall: "跳跃" };
+		const BUTTONS = [
+			{ anim: "idle", label: "待机" }, { anim: "walk", label: "散步" }, { anim: "run", label: "奔跑" },
+			{ anim: "sleep", label: "睡觉" }, { anim: "interact", label: "互动" }, { anim: "jump_fall", label: "跳跃" }
+		];
 
 		// module-scope engine state (survives across renders for the plugin's life)
 		let appCtx = null;
@@ -322,68 +315,29 @@ window.__ModuleLoader__.load({
 			pet.menu.open = !pet.menu.open;
 		}
 
-		/**
-		 * 右键菜单的动作按钮入口。
-		 *
-		 * 不再逐个动作名判断——宠物配置里存在的任何动作都能播：
-		 *   · idle         回到待机
-		 *   · 再点当前动作  取消，回到待机
-		 *   · 跳跃         给一个抛物线，落地回待机
-		 *   · 走路 / 奔跑   真的走动一段（向左走朝左），到时自动停下
-		 *   · 睡觉         睡一段自动醒
-		 *   · 其余         循环播放，直到点别的动作
-		 */
 		function manualTrigger(c, anim) {
 			if (!c) return;
-			const target = c.animations[anim];
-			if (!target) return;
 			pet.idleElapsed = 0;
-
-			const rest = () => {
+			if (anim === "idle") {
 				pet.forced = null;
 				pet.action = null;
 				pet.move = null;
 				setAnim("idle");
 				pet.nextActionAt = Date.now() + 3000;
-			};
-
-			if (anim === "idle") {
-				rest();
-				return;
-			}
-			// 再点一次同一个动作 = 取消它
-			if (pet.forced === anim) {
-				rest();
-				return;
-			}
-
-			if (anim === "jump_fall") {
+			} else if (anim === "interact") {
+				triggerForced(c, "interact");
+			} else if (anim === "jump_fall") {
 				pet.airborne = true;
 				pet.vy = -JUMP_V;
 				pet.nextActionAt = Date.now() + AWAKE_AFTER_INTERACT;
-				triggerForced(c, anim);
-				return;
-			}
-
-			if (anim === "walk" || anim === "walk_left" || anim === "run") {
-				const dir = anim === "walk_left" ? -1 : 1;
-				const running = anim === "run";
-				pet.forced = null;
-				pet.action = { anim, until: Date.now() + (running ? rand(2000, 3500) : rand(4000, 6000)) };
-				pet.move = { type: running ? "run" : "walk", dir, speed: running ? WALK_SPEED * 2 : WALK_SPEED };
-				pet.dir = dir;
-				setAnim(anim);
-				return;
-			}
-
-			if (anim === "sleep") {
+				triggerForced(c, "jump_fall");
+			} else if (anim === "walk") {
+				startAction(c, "walk", 4000, 6000);
+			} else if (anim === "run") {
+				startAction(c, "run", 2000, 3500);
+			} else if (anim === "sleep") {
 				startAction(c, "sleep", 12000, 20000);
-				return;
 			}
-
-			// 其它任意动作：循环播放，直到点别的动作或再点一次
-			triggerForced(c, anim);
-			pet.nextActionAt = Date.now() + AWAKE_AFTER_INTERACT;
 		}
 
 		const rootStyle = {
@@ -448,9 +402,6 @@ window.__ModuleLoader__.load({
 						pet.cfg = r.config;
 						pet.spriteUrl = r.spriteUrl || "";
 						pet.alignMap = r.align || null;
-						// 不同图集的脚底位置不同：宠物自带 anchor_y 时优先
-						const anchorFromConfig = r.config && r.config.sprite ? r.config.sprite.anchor_y : void 0;
-						if (Number.isFinite(anchorFromConfig)) ANCHOR_Y = anchorFromConfig;
 						const m = measureViewport();
 						if (m) { pet.vw = m.w; pet.vh = m.h; }
 						pet.x = pet.vw - 220;
@@ -521,27 +472,16 @@ window.__ModuleLoader__.load({
 				touchAction: "none"
 			};
 
-			const buttons = actionButtons(c);
-			const n = Math.max(2, buttons.length);
-			// 动作多时把弧半径放大，避免按钮互相挤在一起
-			const arcR = Math.max(ARC_R, Math.min(170, buttons.length * 19));
+			const n = BUTTONS.length;
 			const arcCx = pet.x;
 			const arcBaseY = pet.feetY - ANCHOR_Y * SCALE - ARC_GAP;
-			const arcBtns = pet.menu.open ? buttons.map((btn, i) => {
+			const arcBtns = pet.menu.open ? BUTTONS.map((btn, i) => {
 				const theta = (Math.PI * i) / (n - 1);
-				const bx = arcCx + arcR * Math.cos(theta) - 17;
-				const by = arcBaseY - arcR * Math.sin(theta) - 17;
+				const bx = arcCx + ARC_R * Math.cos(theta) - 17;
+				const by = arcBaseY - ARC_R * Math.sin(theta) - 17;
 				return react.createElement("button", {
 					key: btn.anim,
-					onPointerDown: (e) => {
-						e.stopPropagation();
-						e.preventDefault();
-						// 素材自带朝向：向右的动作朝右、向左的动作朝左，避免两者看起来一样
-						if (btn.anim === "walk_left") pet.dir = -1;
-						else if (btn.anim === "walk" || btn.anim === "run") pet.dir = 1;
-						manualTrigger(pet.cfg, btn.anim);
-						pet.menu.open = false;
-					},
+					onPointerDown: (e) => { e.stopPropagation(); e.preventDefault(); manualTrigger(pet.cfg, btn.anim); pet.menu.open = false; },
 					style: Object.assign({}, arcBtnStyle,
 						pet.anim === btn.anim ? { background: "rgba(255,255,255,0.32)" } : {},
 						{ position: "fixed", left: Math.max(4, Math.min(pet.vw - 38, bx)) + "px", top: Math.max(4, by) + "px" })

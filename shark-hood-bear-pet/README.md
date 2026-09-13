@@ -64,39 +64,6 @@ shark-hood-bear-pet/
 > 注意：桌宠图集默认读取 `D:/桌面/deepseek/shark_hood_bear_pet_full/pet/`，
 > 如路径不同请修改 `dsh-shark-pet/lib/index.js` 中的 `PET_BASE`。
 
-## 使用 petdex 宠物（适配任意 Codex 宠物）
-
-[petdex.dev](https://petdex.dev) 的宠物是 Codex / ChatGPT 规格：8×9 网格、单元格 192×208、WebP。
-`adapt-petdex-pet.mjs` 用它转成本插件读取的格式（8×9、单元格 256×256、PNG + pet.json）：
-
-```powershell
-# 1. 取得 petdex 宠物的两个文件（sprite.webp + pet.json）放进一个目录
-#    真实资源地址可从这个脚本里看到： https://petdex.dev/install/<slug>
-
-# 2. 转换（等比缩放，不变形；脚底位置按比例换算成 anchor_y）
-node adapt-petdex-pet.mjs <源目录> <输出目录>
-
-# 3. 让插件读取它：设置环境变量，或把输出目录加入插件的候选路径
-setx DSH_PET_BASE "D:\deepseek\pets\line-puppy"
-```
-
-九行状态全部保留为可播放动作（右键菜单的按钮数量 = 宠物配置里的动作数量）：
-
-| Codex 状态行 | 本插件动作 | 中文按钮 |
-|---|---|---|
-| idle | idle | 待机 |
-| running-right | walk | 散步 |
-| running-left | walk_left | 向左走 |
-| waving | interact | 互动 |
-| jumping | jump_fall | 跳跃 |
-| failed | failed | 失败 |
-| waiting | sleep | 睡觉 |
-| running | run | 奔跑 |
-| review | review | 审阅 |
-
-> 转换出的 `pet.json` 带空的 `align` 表，插件会优先采用它，从而不做逐格补偿
-> （内置补偿表是给鲨鱼熊素材调的）。
-
 ## 技术要点
 
 - 图集：2048×2304 PNG，单格 256×256，锚点 (128, 230)

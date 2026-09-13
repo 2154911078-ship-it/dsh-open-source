@@ -20,23 +20,13 @@ export const inject = ["webServer"];
 /**
  * Pet assets base directory, resolved in priority order:
  *   1. DSH_PET_BASE environment variable (recommended, portable)
- *   2. an installed petdex/Codex pet (deepseek/pets/line-puppy)
- *   3. <repo root>/shark-hood-bear-pet/pet/pet  (repo-relative layout)
- *   4. Author's original absolute path (legacy fallback)
+ *   2. <repo root>/shark-hood-bear-pet/pet/pet  (repo-relative layout)
+ *   3. Author's original absolute path (legacy fallback)
  */
-const PETDEX_PET_DIR = "D:\\桌面\\deepseek\\pets\\line-puppy";
-
 function resolvePetBase() {
-	const candidates = [
-		process.env.DSH_PET_BASE,
-		PETDEX_PET_DIR,
-		join(import.meta.dirname, "..", "..", "shark-hood-bear-pet", "pet", "pet"),
-		"D:/桌面/deepseek/shark_hood_bear_pet_full/pet"
-	];
-	for (const candidate of candidates) {
-		if (typeof candidate !== "string" || candidate.length === 0) continue;
-		if (existsSync(join(candidate, "pet.json")) && existsSync(join(candidate, "pet.png"))) return candidate;
-	}
+	if (process.env.DSH_PET_BASE) return process.env.DSH_PET_BASE;
+	const repoRel = join(import.meta.dirname, "..", "..", "shark-hood-bear-pet", "pet", "pet");
+	if (existsSync(join(repoRel, "pet.png"))) return repoRel;
 	return "D:/桌面/deepseek/shark_hood_bear_pet_full/pet";
 }
 const PET_BASE = resolvePetBase();
@@ -64,12 +54,13 @@ async function loadSprite(ctx) {
 }
 
 async function loadConfig(ctx) {
+	if (configCache) return configCache;
 	const fs = ctx.get("fs");
 	if (!fs) throw new Error("fs 服务不可用");
 	const target = await fs.resolve(CONFIG_PATH);
 	const text = await fs.readText(target);
-	// 不缓存：pet.json 很小，换宠物 / 调动作后刷新页面即可生效
-	return JSON.parse(text);
+	configCache = JSON.parse(text);
+	return configCache;
 }
 
 function sendJson(res, status, body) {
@@ -107,9 +98,7 @@ export function apply(ctx) {
 		handler: async (req, res) => {
 			try {
 				const config = await loadConfig(ctx);
-				// 宠物自带 align 时优先（petdex 素材没有逐格补偿），否则用内置表（鲨鱼熊专用）
-				const align = config && typeof config.align === "object" && config.align !== null ? config.align : ALIGN;
-				sendJson(res, 200, { config, spriteUrl: SPRITE_URL, align });
+				sendJson(res, 200, { config, spriteUrl: SPRITE_URL, align: ALIGN });
 			} catch (error) {
 				sendJson(res, 500, {
 					ok: false,
