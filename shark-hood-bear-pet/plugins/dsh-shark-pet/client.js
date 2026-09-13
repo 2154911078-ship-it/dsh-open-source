@@ -494,7 +494,15 @@ window.__ModuleLoader__.load({
 				const by = arcBaseY - arcR * Math.sin(theta) - 17;
 				return react.createElement("button", {
 					key: btn.anim,
-					onPointerDown: (e) => { e.stopPropagation(); e.preventDefault(); manualTrigger(pet.cfg, btn.anim); pet.menu.open = false; },
+					onPointerDown: (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						// 素材自带朝向：向右的动作朝右、向左的动作朝左，避免两者看起来一样
+						if (btn.anim === "walk_left") pet.dir = -1;
+						else if (btn.anim === "walk" || btn.anim === "run") pet.dir = 1;
+						manualTrigger(pet.cfg, btn.anim);
+						pet.menu.open = false;
+					},
 					style: Object.assign({}, arcBtnStyle,
 						pet.anim === btn.anim ? { background: "rgba(255,255,255,0.32)" } : {},
 						{ position: "fixed", left: Math.max(4, Math.min(pet.vw - 38, bx)) + "px", top: Math.max(4, by) + "px" })
