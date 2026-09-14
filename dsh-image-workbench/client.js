@@ -368,6 +368,42 @@ window.__ModuleLoader__.load({
 			);
 		}
 
+		/** 会话标题栏上的入口：点一下把「图片工作台」推进右侧栏。 */
+		function WorkbenchLauncher(props) {
+			const [pending, setPending] = react.useState(false);
+			const onClick = () => {
+				const open = props && props.open;
+				if (typeof open !== "function") return;
+				setPending(true);
+				if (!open()) console.warn("dsh-image-workbench: 右侧栏当前不可用");
+				window.setTimeout(() => setPending(false), 400);
+			};
+			return react.createElement(
+				"button",
+				{
+					type: "button",
+					title: "打开图片工作台",
+					onClick,
+					style: {
+						display: "inline-flex", alignItems: "center", gap: 6, flex: "none",
+						height: 28, padding: "0 9px", border: "none", borderRadius: 8,
+						background: pending ? "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.08))" : "transparent",
+						color: "var(--dsw-alias-label-secondary, #9aa3b2)",
+						fontFamily: "inherit", fontSize: 12.5, cursor: "pointer",
+						transition: "background 0.15s ease, color 0.15s ease"
+					},
+					onMouseEnter: (event) => {
+						event.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.06))";
+					},
+					onMouseLeave: (event) => {
+						if (!pending) event.currentTarget.style.background = "transparent";
+					}
+				},
+				react.createElement("span", { style: { fontSize: 14, lineHeight: 1 } }, "🖼"),
+				react.createElement("span", null, "图片")
+			);
+		}
+
 		function apply(ctx) {
 			const slots = ctx.get("slots");
 			if (slots === undefined) return;
@@ -396,6 +432,39 @@ window.__ModuleLoader__.load({
 				name: "sidebar.right.pane.tab.title",
 				key: PLUGIN_ID
 			}, WorkbenchTitle));
+
+			// 入口按钮：右侧栏标签类型不会自己占位，必须有人先打开它
+			ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
+				name: "conversation.session.header.actions",
+				id: "image-workbench",
+				order: 40,
+				inject: () => ({
+					open: () => {
+						const service = ctx.get("sidebarRight");
+						const layout = ctx.get("layout");
+						const place = () => {
+							if (service === undefined || typeof service.openTab !== "function") return false;
+							try {
+								service.openTab(TAB_KIND);
+								return true;
+							} catch (_error) {
+								return false;
+							}
+						};
+						if (place()) return true;
+						// 右侧栏还没展开时先展开，再放标签
+						if (layout !== undefined && typeof layout.openRightbar === "function") {
+							try {
+								layout.openRightbar(true, false);
+							} catch (_error) {
+								return false;
+							}
+							return place();
+						}
+						return false;
+					}
+				})
+			}, WorkbenchLauncher));
 		}
 
 		exports.apply = apply;
