@@ -230,7 +230,7 @@ window.__ModuleLoader__.load({
 
 			return react.createElement(
 				"div",
-				{ style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } },
+				{ style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 300, minWidth: 0, overflow: "hidden" } },
 				// 工具栏
 				react.createElement(
 					"div",
@@ -376,7 +376,11 @@ window.__ModuleLoader__.load({
 				const open = props && props.open;
 				if (typeof open !== "function") return;
 				setPending(true);
-				if (!open()) console.warn("dsh-image-workbench: 右侧栏当前不可用");
+				try {
+					if (!open()) console.warn("dsh-image-workbench: 右侧栏当前不可用");
+				} catch (error) {
+					console.warn("dsh-image-workbench: 入口调用出错", error);
+				}
 				window.setTimeout(() => setPending(false), 400);
 			};
 			const shape = row
@@ -413,29 +417,65 @@ window.__ModuleLoader__.load({
 			);
 		}
 
+		/**
+		 * 错误边界：工作台内部一旦抛错，界面上会显示原因而不是一片空白
+		 * （白屏时无法判断是没渲染还是渲染失败，这一步是为了让问题可见）。
+		 */
+		class WorkbenchBoundary extends react.Component {
+			constructor(props) {
+				super(props);
+				this.state = { error: null };
+			}
+			static getDerivedStateFromError(error) {
+				return { error };
+			}
+			componentDidCatch(error, info) {
+				console.error("dsh-image-workbench render error:", error, info);
+			}
+			render() {
+				if (this.state.error !== null) {
+					return react.createElement(
+						"div",
+						{ style: { padding: 12, color: "#ff8a8a", fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap", overflow: "auto" } },
+						"图片工作台渲染出错：\n" + String((this.state.error && this.state.error.message) || this.state.error)
+					);
+				}
+				return this.props.children;
+			}
+		}
+
+		function WorkbenchSafe() {
+			return react.createElement(WorkbenchBoundary, null, react.createElement(WorkbenchBody, null));
+		}
+
 		/** 打开工作台标签：先尝试放标签，失败则先把右侧栏展开再放。 */
 		function openWorkbench(ctx) {
-			const service = ctx.get("sidebarRight");
-			const layout = ctx.get("layout");
-			const place = () => {
-				if (service === undefined || typeof service.openTab !== "function") return false;
-				try {
-					service.openTab(TAB_KIND);
-					return true;
-				} catch (_error) {
-					return false;
+			try {
+				const service = ctx.get("sidebarRight");
+				const layout = ctx.get("layout");
+				const place = () => {
+					if (service === undefined || typeof service.openTab !== "function") return false;
+					try {
+						service.openTab(TAB_KIND);
+						return true;
+					} catch (_error) {
+						return false;
+					}
+				};
+				if (place()) return true;
+				if (layout !== undefined && typeof layout.openRightbar === "function") {
+					try {
+						layout.openRightbar(true, false);
+					} catch (_error) {
+						return false;
+					}
+					return place();
 				}
-			};
-			if (place()) return true;
-			if (layout !== undefined && typeof layout.openRightbar === "function") {
-				try {
-					layout.openRightbar(true, false);
-				} catch (_error) {
-					return false;
-				}
-				return place();
+				return false;
+			} catch (error) {
+				console.warn("dsh-image-workbench: 打开标签失败", error);
+				return false;
 			}
-			return false;
 		}
 
 		function apply(ctx) {
@@ -444,20 +484,22 @@ window.__ModuleLoader__.load({
 
 			// 入口先注册，且**不依赖**右侧栏服务是否已就绪：一旦它还没挂载，
 			// 后面的 return 会把入口一起跳过（之前就是这样，界面上根本没有入口）。
-			ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
+			// 官方插件的统一写法：座位注册包在 ctx.effect 里执行，确保它发生在
+			// fiber 就绪之后；直接同步调用可能在服务尚未挂载时注册落空（表现为白屏）。
+			ctx.effect(() => ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
 				name: "conversation.session.header.actions",
 				id: "image-workbench",
 				order: 25,
 				inject: () => ({ open: () => openWorkbench(ctx) })
-			}, WorkbenchLauncher));
+			}, WorkbenchLauncher)), "image-workbench: header entry");
 
 			// 第二个入口：侧栏底部（更显眼，作为兜底）
-			ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
+			ctx.effect(() => ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
 				name: "sidebar.footer.action",
 				id: "image-workbench",
 				order: 35,
 				inject: () => ({ open: () => openWorkbench(ctx), variant: "row" })
-			}, WorkbenchLauncher));
+			}, WorkbenchLauncher)), "image-workbench: sidebar entry");
 
 			const tabs = ctx.get("sidebarRightTabs");
 			if (tabs === undefined || typeof tabs.register !== "function") return;
@@ -475,15 +517,15 @@ window.__ModuleLoader__.load({
 				}]
 			}), "image-workbench: tab type");
 
-			ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
+			ctx.effect(() => ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
 				name: "sidebar.right.pane.tab",
 				key: PLUGIN_ID
-			}, WorkbenchBody));
+			}, WorkbenchSafe)), "image-workbench: tab body");
 
-			ctx.slots.inject("sidebar.right.pane.tab.title", () => ctx.slots.register({
+			ctx.effect(() => ctx.slots.inject("sidebar.right.pane.tab.title", () => ctx.slots.register({
 				name: "sidebar.right.pane.tab.title",
 				key: PLUGIN_ID
-			}, WorkbenchTitle));
+			}, WorkbenchTitle)), "image-workbench: tab title");
 		}
 
 		exports.apply = apply;

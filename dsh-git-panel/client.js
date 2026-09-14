@@ -296,7 +296,7 @@ window.__ModuleLoader__.load({
 
 			return react.createElement(
 				"div",
-				{ style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } },
+				{ style: { display: "flex", flexDirection: "column", height: "100%", minHeight: 300, minWidth: 0 } },
 				// repo picker
 				react.createElement(
 					"div",
@@ -589,19 +589,19 @@ window.__ModuleLoader__.load({
 					}]
 				}), "git-panel: tab type");
 
-				ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
+				ctx.effect(() => ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
 					name: "sidebar.right.pane.tab",
 					key: PLUGIN_ID
-				}, GitPanelBody));
+				}, GitPanelBody)), "git-panel: tab body");
 
-				ctx.slots.inject("sidebar.right.pane.tab.title", () => ctx.slots.register({
+				ctx.effect(() => ctx.slots.inject("sidebar.right.pane.tab.title", () => ctx.slots.register({
 					name: "sidebar.right.pane.tab.title",
 					key: PLUGIN_ID
-				}, GitTabTitle));
+				}, GitTabTitle)), "git-panel: tab title");
 			}
 
-			// Entry point: header chip that opens (or falls back to) the panel.
-			ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
+			// Entry point: header chip that opens the panel.
+			ctx.effect(() => ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
 				name: "conversation.session.header.actions",
 				id: "git-panel",
 				order: 30,
@@ -617,7 +617,7 @@ window.__ModuleLoader__.load({
 						}
 					}
 				})
-			}, GitLauncher));
+			}, GitLauncher)), "git-panel: header entry");
 		}
 
 		exports.apply = apply;
