@@ -368,9 +368,10 @@ window.__ModuleLoader__.load({
 			);
 		}
 
-		/** 会话标题栏上的入口：点一下把「图片工作台」推进右侧栏。 */
+		/** 入口按钮：标题栏用紧凑样式，侧栏底部用整行样式（props.variant === "row"）。 */
 		function WorkbenchLauncher(props) {
 			const [pending, setPending] = react.useState(false);
+			const row = props !== null && props !== undefined && props.variant === "row";
 			const onClick = () => {
 				const open = props && props.open;
 				if (typeof open !== "function") return;
@@ -378,20 +379,28 @@ window.__ModuleLoader__.load({
 				if (!open()) console.warn("dsh-image-workbench: 右侧栏当前不可用");
 				window.setTimeout(() => setPending(false), 400);
 			};
+			const shape = row
+				? {
+					width: "100%", height: 40, borderRadius: 10, padding: "0 10px",
+					display: "flex", alignItems: "center", gap: 10,
+					fontSize: 13, color: "var(--dsw-alias-label-primary, #e8eaf0)"
+				}
+				: {
+					display: "inline-flex", alignItems: "center", gap: 6,
+					height: 28, padding: "0 9px", borderRadius: 8,
+					fontSize: 12.5, color: "var(--dsw-alias-label-secondary, #9aa3b2)"
+				};
 			return react.createElement(
 				"button",
 				{
 					type: "button",
 					title: "打开图片工作台",
 					onClick,
-					style: {
-						display: "inline-flex", alignItems: "center", gap: 6, flex: "none",
-						height: 28, padding: "0 9px", border: "none", borderRadius: 8,
-						background: pending ? "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.08))" : "transparent",
-						color: "var(--dsw-alias-label-secondary, #9aa3b2)",
-						fontFamily: "inherit", fontSize: 12.5, cursor: "pointer",
-						transition: "background 0.15s ease, color 0.15s ease"
-					},
+					style: Object.assign(
+						{ flex: "none", border: "none", fontFamily: "inherit", cursor: "pointer", background: "transparent" },
+						shape,
+						pending ? { background: "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.08))" } : {}
+					),
 					onMouseEnter: (event) => {
 						event.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.06))";
 					},
@@ -399,14 +408,57 @@ window.__ModuleLoader__.load({
 						if (!pending) event.currentTarget.style.background = "transparent";
 					}
 				},
-				react.createElement("span", { style: { fontSize: 14, lineHeight: 1 } }, "🖼"),
-				react.createElement("span", null, "图片")
+				react.createElement("span", { style: { fontSize: row ? 15 : 14, lineHeight: 1 } }, "🖼"),
+				react.createElement("span", { style: row ? { flex: 1, textAlign: "left" } : null }, "图片")
 			);
+		}
+
+		/** 打开工作台标签：先尝试放标签，失败则先把右侧栏展开再放。 */
+		function openWorkbench(ctx) {
+			const service = ctx.get("sidebarRight");
+			const layout = ctx.get("layout");
+			const place = () => {
+				if (service === undefined || typeof service.openTab !== "function") return false;
+				try {
+					service.openTab(TAB_KIND);
+					return true;
+				} catch (_error) {
+					return false;
+				}
+			};
+			if (place()) return true;
+			if (layout !== undefined && typeof layout.openRightbar === "function") {
+				try {
+					layout.openRightbar(true, false);
+				} catch (_error) {
+					return false;
+				}
+				return place();
+			}
+			return false;
 		}
 
 		function apply(ctx) {
 			const slots = ctx.get("slots");
 			if (slots === undefined) return;
+
+			// 入口先注册，且**不依赖**右侧栏服务是否已就绪：一旦它还没挂载，
+			// 后面的 return 会把入口一起跳过（之前就是这样，界面上根本没有入口）。
+			ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
+				name: "conversation.session.header.actions",
+				id: "image-workbench",
+				order: 25,
+				inject: () => ({ open: () => openWorkbench(ctx) })
+			}, WorkbenchLauncher));
+
+			// 第二个入口：侧栏底部（更显眼，作为兜底）
+			ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
+				name: "sidebar.footer.action",
+				id: "image-workbench",
+				order: 35,
+				inject: () => ({ open: () => openWorkbench(ctx), variant: "row" })
+			}, WorkbenchLauncher));
+
 			const tabs = ctx.get("sidebarRightTabs");
 			if (tabs === undefined || typeof tabs.register !== "function") return;
 
@@ -432,39 +484,6 @@ window.__ModuleLoader__.load({
 				name: "sidebar.right.pane.tab.title",
 				key: PLUGIN_ID
 			}, WorkbenchTitle));
-
-			// 入口按钮：右侧栏标签类型不会自己占位，必须有人先打开它
-			ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
-				name: "conversation.session.header.actions",
-				id: "image-workbench",
-				order: 40,
-				inject: () => ({
-					open: () => {
-						const service = ctx.get("sidebarRight");
-						const layout = ctx.get("layout");
-						const place = () => {
-							if (service === undefined || typeof service.openTab !== "function") return false;
-							try {
-								service.openTab(TAB_KIND);
-								return true;
-							} catch (_error) {
-								return false;
-							}
-						};
-						if (place()) return true;
-						// 右侧栏还没展开时先展开，再放标签
-						if (layout !== undefined && typeof layout.openRightbar === "function") {
-							try {
-								layout.openRightbar(true, false);
-							} catch (_error) {
-								return false;
-							}
-							return place();
-						}
-						return false;
-					}
-				})
-			}, WorkbenchLauncher));
 		}
 
 		exports.apply = apply;
