@@ -368,21 +368,16 @@ window.__ModuleLoader__.load({
 			);
 		}
 
-		/** 入口按钮：标题栏用紧凑样式，侧栏底部用整行样式（props.variant === "row"）。 */
+		/**
+		 * 入口按钮：点一下直接在页面上浮出工作台。
+		 *
+		 * 不走右侧栏标签，是因为标签渲染依赖座位注册的时序（会出现"先开标签、
+		 * 再点一次按钮才出现"的两步现象）；浮层是点击即出现，一次到位。
+		 * 右侧栏标签仍然保留，愿意用的话可以从标签菜单打开。
+		 */
 		function WorkbenchLauncher(props) {
-			const [pending, setPending] = react.useState(false);
 			const row = props !== null && props !== undefined && props.variant === "row";
-			const onClick = () => {
-				const open = props && props.open;
-				if (typeof open !== "function") return;
-				setPending(true);
-				try {
-					if (!open()) console.warn("dsh-image-workbench: 右侧栏当前不可用");
-				} catch (error) {
-					console.warn("dsh-image-workbench: 入口调用出错", error);
-				}
-				window.setTimeout(() => setPending(false), 400);
-			};
+			const [open, setOpen] = react.useState(false);
 			const shape = row
 				? {
 					width: "100%", height: 40, borderRadius: 10, padding: "0 10px",
@@ -395,25 +390,62 @@ window.__ModuleLoader__.load({
 					fontSize: 12.5, color: "var(--dsw-alias-label-secondary, #9aa3b2)"
 				};
 			return react.createElement(
-				"button",
-				{
-					type: "button",
-					title: "打开图片工作台",
-					onClick,
-					style: Object.assign(
-						{ flex: "none", border: "none", fontFamily: "inherit", cursor: "pointer", background: "transparent" },
-						shape,
-						pending ? { background: "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.08))" } : {}
-					),
-					onMouseEnter: (event) => {
-						event.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.06))";
+				react.Fragment,
+				null,
+				react.createElement(
+					"button",
+					{
+						type: "button",
+						title: "打开图片工作台",
+						onClick: () => setOpen((value) => !value),
+						style: Object.assign(
+							{ flex: "none", border: "none", fontFamily: "inherit", cursor: "pointer", background: "transparent" },
+							shape,
+							open ? { background: "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.10))" } : {}
+						),
+						onMouseEnter: (event) => {
+							event.currentTarget.style.background = "var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,0.06))";
+						},
+						onMouseLeave: (event) => {
+							if (!open) event.currentTarget.style.background = "transparent";
+						}
 					},
-					onMouseLeave: (event) => {
-						if (!pending) event.currentTarget.style.background = "transparent";
-					}
-				},
-				react.createElement("span", { style: { fontSize: row ? 15 : 14, lineHeight: 1 } }, "🖼"),
-				react.createElement("span", { style: row ? { flex: 1, textAlign: "left" } : null }, "图片")
+					react.createElement("span", { style: { fontSize: row ? 15 : 14, lineHeight: 1 } }, "🖼"),
+					react.createElement("span", { style: row ? { flex: 1, textAlign: "left" } : null }, "图片")
+				),
+				open
+					? react.createElement(
+						"div",
+						{
+							style: {
+								position: "fixed", right: 12, top: 56, bottom: 12,
+								width: 460, maxWidth: "calc(100vw - 24px)",
+								zIndex: 9997, display: "flex", flexDirection: "column", overflow: "hidden",
+								borderRadius: 14,
+								border: "1px solid var(--dsw-alias-border-l2, rgba(255,255,255,0.12))",
+								background: "var(--dsw-alias-bg-base, #15181f)",
+								boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.3)"
+							}
+						},
+						react.createElement(
+							"div",
+							{
+								style: {
+									display: "flex", alignItems: "center", gap: 8, padding: "8px 8px 8px 12px",
+									flex: "none", borderBottom: "1px solid var(--dsw-alias-border-l1, rgba(255,255,255,0.08))"
+								}
+							},
+							react.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: "var(--dsw-alias-label-primary, #e8eaf0)" } }, "图片工作台"),
+							react.createElement("span", { style: { flex: 1 } }),
+							react.createElement("button", { type: "button", title: "关闭", onClick: () => setOpen(false), style: iconButtonStyle() }, "✕")
+						),
+						react.createElement(
+							"div",
+							{ style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } },
+							react.createElement(WorkbenchBoundary, null, react.createElement(WorkbenchBody, null))
+						)
+					)
+					: null
 			);
 		}
 
